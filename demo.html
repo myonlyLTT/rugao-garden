@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>线上探店小程序 · AI 场景装扮（高保真模拟）</title>
+<style>
+  :root{
+    --pink:#ff6b9d; --pink-deep:#ec4f8b; --pink-soft:#ffeaf2;
+    --mint:#4aa97a; --mint-soft:#e7f8ee;
+    --lav:#8f76d8; --lav-soft:#f1ecfb;
+    --amber:#d9822b; --amber-soft:#fff3e4;
+    --ink:#3a2b30; --muted:#a0868e; --line:#f0dde4; --card:#fff;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"PingFang SC","Microsoft YaHei","Segoe UI",system-ui,sans-serif;color:var(--ink);line-height:1.7;background:linear-gradient(160deg,#fff5f8,#fdeef4 42%,#f2faf5);min-height:100vh}
+  header.top{background:linear-gradient(120deg,#ff9dc0,#ff6b9d);color:#fff;padding:14px 24px;text-align:center;box-shadow:0 2px 14px rgba(236,79,139,.28)}
+  header.top h1{font-size:20px;margin:0}
+  header.top p{margin:4px 0 0;font-size:13px;opacity:.92}
+  .page{max-width:1120px;margin:0 auto;padding:22px;display:grid;grid-template-columns:430px 1fr;gap:24px;align-items:start}
+  @media (max-width:920px){.page{grid-template-columns:1fr}}
+
+  /* ===== 手机外壳 ===== */
+  .phone-wrap{position:sticky;top:20px}
+  .phone{
+    width:410px;height:860px;margin:0 auto;background:#faf7f8;border-radius:46px;
+    border:10px solid #2b1f23;box-shadow:0 26px 64px rgba(90,60,80,.4);
+    overflow:hidden;display:flex;flex-direction:column;position:relative;
+  }
+  .statusbar{height:30px;background:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 18px;font-size:13px;font-weight:700;color:var(--ink);flex:0 0 30px}
+  .statusbar .sys{display:flex;align-items:center;gap:5px}
+  .capsule{position:absolute;top:36px;right:12px;z-index:9;display:flex;align-items:center;background:rgba(0,0,0,.08);border-radius:999px;height:28px;padding:0 4px}
+  .capsule span{width:38px;text-align:center;color:#333;font-size:15px;line-height:1}
+  .capsule .div{width:1px;height:16px;background:rgba(0,0,0,.2)}
+  .mp-nav{background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:6px;padding:10px 14px;flex:0 0 auto;position:relative;z-index:8}
+  .mp-nav .back{font-size:20px;color:var(--ink);cursor:pointer;width:26px;text-align:center;visibility:hidden}
+  .mp-nav .back.show{visibility:visible}
+  .mp-nav .tt{font-size:15.5px;font-weight:800;text-align:center;flex:1}
+  .mp-nav .act{font-size:13px;color:var(--pink-deep);font-weight:600;cursor:pointer}
+  .mp-body{flex:1;overflow:auto;padding:14px;scrollbar-width:none}
+  .mp-body::-webkit-scrollbar{display:none}
+  .mp-foot{padding:10px 14px 14px;background:#fff;border-top:1px solid var(--line);flex:0 0 auto}
+  .btn-primary{width:100%;border:none;border-radius:999px;padding:13px;font-size:15px;font-weight:700;color:#fff;background:linear-gradient(120deg,#ff9dc0,#ff6b9d);cursor:pointer;box-shadow:0 6px 16px rgba(236,79,139,.3);transition:.15s}
+  .btn-primary:active{transform:scale(.98)}
+  .btn-primary:disabled{background:#e9d3dc;box-shadow:none;cursor:not-allowed}
+  .btn-row{display:flex;gap:10px}
+  .btn-ghost{flex:1;border:1px solid var(--pink);border-radius:999px;padding:11px;font-size:14px;font-weight:700;color:var(--pink-deep);background:#fff;cursor:pointer}
+
+  /* 底部 tab */
+  .tabbar{flex:0 0 58px;background:#fff;border-top:1px solid var(--line);display:flex;padding-bottom:8px}
+  .tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;color:#9b8f94;font-size:10.5px;transition:.15s}
+  .tab .ic{font-size:20px;line-height:1}
+  .tab.on{color:var(--pink-deep);font-weight:700}
+
+  .screen{display:none;animation:fadeUp .32s ease both}
+  .screen.on{display:block}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+
+  /* 首页 */
+  .search{display:flex;align-items:center;gap:8px;background:#f3ecef;border-radius:999px;padding:8px 14px;font-size:13px;color:var(--muted)}
+  .banner{margin-top:12px;border-radius:16px;overflow:hidden;position:relative;border:1px solid #ffd3e2;background:linear-gradient(140deg,#ffe3ee,#fff)}
+  .banner svg{width:100%;height:120px;display:block}
+  .banner .bt{padding:10px 13px}
+  .banner .bt h3{margin:0;font-size:15px;color:var(--pink-deep)}
+  .banner .bt p{margin:3px 0 0;font-size:12px;color:var(--muted)}
+  .banner .go{position:absolute;right:10px;bottom:10px;background:linear-gradient(120deg,#ff9dc0,#ff6b9d);color:#fff;font-size:12.5px;font-weight:700;padding:7px 13px;border-radius:999px;box-shadow:0 4px 10px rgba(236,79,139,.3);cursor:pointer}
+  .cats{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:12px}
+  .cat{background:#fff;border:1px solid var(--line);border-radius:12px;padding:9px 4px;text-align:center;font-size:11px;cursor:pointer}
+  .cat .ic{font-size:20px;display:block}
+  .sec-t{display:flex;align-items:center;justify-content:space-between;margin:14px 0 8px}
+  .sec-t b{font-size:14px}
+  .sec-t span{font-size:12px;color:var(--muted);cursor:pointer}
+  .pgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .pcard{background:#fff;border:1px solid var(--line);border-radius:13px;overflow:hidden;cursor:pointer;transition:.15s}
+  .pcard:active{transform:scale(.98)}
+  .pcard svg{width:100%;height:88px;display:block}
+  .pcard .pi{padding:8px 10px}
+  .pcard b{font-size:12.5px;display:block}
+  .pcard .pr{font-size:13px;color:var(--pink-deep);font-weight:700}
+  .pcard .sold{font-size:10.5px;color:var(--muted);margin-left:6px}
+
+  /* 上传 */
+  .h3{font-size:15.5px;margin:4px 0 2px}
+  .hint{font-size:12.5px;color:var(--muted);margin:0 0 10px}
+  .up-box{border:2px dashed #ffc9dc;border-radius:14px;background:#fff;text-align:center;padding:22px 14px;cursor:pointer}
+  .up-box .ic{font-size:34px}
+  .up-box b{display:block;margin-top:6px;font-size:14px}
+  .up-box span{font-size:12px;color:var(--muted)}
+  .up-preview{margin-top:12px;border-radius:14px;overflow:hidden;border:1px solid var(--line);position:relative}
+  .up-preview svg{width:100%;display:block}
+  .ok{position:absolute;right:8px;top:8px;background:var(--mint);color:#fff;font-size:11px;padding:2px 8px;border-radius:999px}
+  .detect{margin-top:12px;background:var(--mint-soft);border:1px solid #cdeeda;border-radius:13px;padding:11px 13px}
+  .detect b{font-size:13px;color:var(--mint);display:flex;align-items:center;gap:6px}
+  .detect .rows{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .detect .chip{background:#fff;border-radius:999px;font-size:11.5px;padding:3px 10px;color:#4a6b58}
+
+  /* 选花 */
+  .fchips{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 10px}
+  .fchip{border:1px solid var(--line);border-radius:999px;padding:5px 13px;font-size:12.5px;background:#fff;cursor:pointer}
+  .fchip.on{background:var(--pink);border-color:var(--pink);color:#fff}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .flower{border:1.5px solid var(--line);border-radius:13px;background:#fff;padding:10px;text-align:center;cursor:pointer;transition:.15s;position:relative}
+  .flower.sel{border-color:var(--pink);background:var(--pink-soft)}
+  .flower .f-svg{width:54px;height:54px;margin:0 auto}
+  .flower b{display:block;font-size:12.5px;margin-top:4px}
+  .flower .price{font-size:12px;color:var(--pink-deep);font-weight:700}
+  .flower .qty{position:absolute;right:-6px;top:-6px;background:var(--pink);color:#fff;font-size:11px;font-weight:700;min-width:20px;height:20px;border-radius:999px;display:none;align-items:center;justify-content:center;padding:0 5px}
+  .flower.sel .qty{display:flex}
+
+  /* 描述 */
+  .tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+  .tag{border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:12.5px;background:#fff;cursor:pointer}
+  .tag.on{background:var(--pink);border-color:var(--pink);color:#fff}
+  .slider-row{display:flex;align-items:center;gap:12px;margin-top:14px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:11px 13px}
+  .slider-row b{font-size:13px;white-space:nowrap}
+  input[type=range]{flex:1;accent-color:var(--pink)}
+  .slider-row .val{font-size:13px;color:var(--pink-deep);font-weight:700;white-space:nowrap}
+  textarea{width:100%;border:1px solid var(--line);border-radius:12px;padding:11px;font-size:13px;resize:none;font-family:inherit;color:var(--ink);outline:none;margin-top:12px}
+
+  /* 加载 */
+  .load-wrap{text-align:center;padding-top:44px}
+  .thumb{width:120px;height:90px;margin:0 auto 18px;border-radius:10px;overflow:hidden;border:2px solid #ffd3e2}
+  .thumb svg{width:100%;height:100%;display:block}
+  .spinner{width:64px;height:64px;margin:0 auto;position:relative}
+  .spinner i{position:absolute;width:24px;height:24px;border-radius:50%;left:50%;top:50%;margin:-12px 0 0 -12px;animation:spin 2.2s linear infinite}
+  @keyframes spin{from{transform:rotate(0) translateX(28px)}to{transform:rotate(360deg) translateX(28px)}}
+  .spinner .core{position:absolute;left:50%;top:50%;width:18px;height:18px;margin:-9px;background:#ffd84d;border-radius:50%}
+  .load-wrap .lt{margin-top:22px;font-size:15px;font-weight:700;color:var(--pink-deep)}
+  .stages{margin:16px 6px 0;text-align:left}
+  .stage{display:flex;align-items:center;gap:9px;font-size:12.5px;color:#c9b7be;padding:5px 2px}
+  .stage .st-ic{width:20px;height:20px;border-radius:50%;background:#f0e6ea;display:flex;align-items:center;justify-content:center;font-size:11px;color:#b7a5ac;flex:0 0 20px}
+  .stage.done{color:var(--ink)}
+  .stage.done .st-ic{background:var(--mint);color:#fff}
+  .stage.now{color:var(--pink-deep);font-weight:700}
+  .stage.now .st-ic{background:var(--pink);color:#fff;animation:pulse 1s infinite}
+  @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
+
+  /* 结果 */
+  .schemes{display:flex;gap:8px;margin:8px 0 12px}
+  .scheme{flex:1;border:1.5px solid var(--line);border-radius:11px;background:#fff;padding:8px 4px;text-align:center;cursor:pointer;font-size:12px}
+  .scheme.on{border-color:var(--pink);background:var(--pink-soft);color:var(--pink-deep);font-weight:700}
+  .ba{position:relative;width:100%;aspect-ratio:4/3;border-radius:12px;overflow:hidden;border:1px solid var(--line);background:#eee}
+  .ba .layer{position:absolute;inset:0}
+  .ba .layer svg{width:100%;height:100%;display:block}
+  .ba .before{clip-path:inset(0 calc(100% - var(--pos,50%)) 0 0)}
+  .ba .handle{position:absolute;top:0;bottom:0;left:var(--pos,50%);width:3px;background:#fff;box-shadow:0 0 6px rgba(0,0,0,.3);transform:translateX(-50%);pointer-events:none}
+  .ba .knob{position:absolute;top:50%;left:var(--pos,50%);transform:translate(-50%,-50%);width:30px;height:30px;border-radius:50%;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;font-size:13px;pointer-events:none;color:var(--pink-deep)}
+  .ba input[type=range]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:ew-resize;margin:0}
+  .ba-tag{position:absolute;top:8px;font-size:11px;padding:2px 9px;border-radius:999px;color:#fff;pointer-events:none;z-index:2}
+  .ba-tag.l{left:8px;background:rgba(0,0,0,.35)}
+  .ba-tag.r{right:8px;background:var(--pink)}
+  .cart{margin-top:12px;background:#fff;border:1px solid var(--line);border-radius:13px;padding:11px 13px}
+  .cart .row{display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:4px 0}
+  .cart .row .qtyctl{display:flex;align-items:center;gap:8px}
+  .cart .qtyctl button{width:24px;height:24px;border-radius:50%;border:1px solid var(--line);background:#fff;cursor:pointer;font-size:14px;line-height:1}
+  .cart .row.total{border-top:1px dashed var(--line);margin-top:6px;padding-top:8px;font-weight:700}
+  .cart .row.total .p{color:var(--pink-deep);font-size:16px}
+  .note{margin-top:10px;font-size:11.5px;color:var(--muted);text-align:center}
+
+  /* 底部弹层 */
+  .sheet{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:20px 20px 0 0;box-shadow:0 -8px 30px rgba(0,0,0,.18);padding:16px;transform:translateY(105%);transition:transform .3s cubic-bezier(.4,0,.2,1);z-index:20}
+  .sheet.on{transform:translateY(0)}
+  .sheet .grab{width:40px;height:4px;background:#e5d7dc;border-radius:99px;margin:0 auto 12px}
+  .sheet .s-head{display:flex;gap:12px;align-items:center}
+  .sheet .s-head svg{width:74px;height:74px;flex:0 0 74px}
+  .sheet .s-head h4{margin:0;font-size:16px}
+  .sheet .s-head .price{color:var(--pink-deep);font-weight:800;font-size:16px}
+  .sheet .meta{margin:12px 0;background:#faf4f6;border-radius:12px;padding:10px 12px;font-size:12.5px;color:#6b545d}
+  .sheet .meta div{display:flex;justify-content:space-between;padding:2px 0}
+  .sheet .meta span:last-child{color:var(--ink);font-weight:600}
+  .sheet .s-act{display:flex;align-items:center;justify-content:space-between;margin-top:14px}
+  .sheet .qtyctl button{width:30px;height:30px;border-radius:50%;border:1px solid var(--line);background:#fff;cursor:pointer;font-size:16px}
+  .sheet .qtyctl b{min-width:28px;text-align:center}
+  .sheet .add{flex:1;margin-left:14px;border:none;border-radius:999px;padding:11px;font-size:14px;font-weight:700;color:#fff;background:linear-gradient(120deg,#ff9dc0,#ff6b9d);cursor:pointer}
+
+  .toast{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);background:rgba(0,0,0,.72);color:#fff;font-size:13px;padding:9px 16px;border-radius:999px;z-index:30;opacity:0;transition:.25s;pointer-events:none}
+  .toast.on{opacity:1}
+
+  /* 信息面板 */
+  .info h2{font-size:18px;margin:0 0 6px;color:var(--pink-deep)}
+  .info .blk{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:14px;box-shadow:0 2px 8px rgba(236,79,139,.06)}
+  .info .blk h3{margin:0 0 8px;font-size:15px;display:flex;align-items:center;gap:8px}
+  .info ol{margin:0;padding-left:18px;font-size:13.5px;color:#54404a}
+  .info ol li{margin:5px 0}
+  .info .dev{font-size:13.5px;color:#54404a}
+  .info .dev .tagline{display:inline-block;background:var(--mint-soft);color:var(--mint);border-radius:6px;padding:1px 7px;font-size:11.5px;margin:2px 3px 2px 0;font-weight:700}
+  .back-link{display:inline-block;margin-top:4px;font-size:13px;color:var(--pink-deep);font-weight:600}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <h1>🐰 线上探店小程序 · AI 场景装扮</h1>
+  <p>高保真模拟：拍院子 → 选花 → AI 生成 → 对比下单（可点按）</p>
+</header>
+
+<div class="page">
+  <div class="phone-wrap">
+    <div class="phone">
+      <div class="statusbar">
+        <span>9:41</span>
+        <span class="sys">
+          <svg width="16" height="11" viewBox="0 0 16 11"><rect x="0" y="7" width="3" height="4" rx="1" fill="#3a2b30"/><rect x="4.5" y="5" width="3" height="6" rx="1" fill="#3a2b30"/><rect x="9" y="2.5" width="3" height="8.5" rx="1" fill="#3a2b30"/><rect x="13.5" y="0" width="3" height="11" rx="1" fill="#3a2b30"/></svg>
+          <svg width="23" height="12" viewBox="0 0 23 12"><rect x="0" y="0" width="19" height="12" rx="3" fill="none" stroke="#3a2b30" stroke-width="1"/><rect x="2" y="2" width="12" height="8" rx="1.5" fill="#3a2b30"/><rect x="19.5" y="3.5" width="2.5" height="5" rx="1" fill="#3a2b30"/></svg>
+        </span>
+      </div>
+      <div class="capsule"><span>···</span><span class="div"></span><span>◉</span></div>
+
+      <div class="mp-nav">
+        <span class="back" id="backBtn" onclick="goBack()">‹</span>
+        <span class="tt" id="navTitle">如皋花语园艺</span>
+        <span class="act" id="navAct" style="visibility:hidden"></span>
+      </div>
+
+      <div class="mp-body" id="body"></div>
+      <div class="mp-foot" id="foot" style="display:none">
+        <button class="btn-primary" id="mainBtn" onclick="next()">开始体验</button>
+      </div>
+
+      <div class="tabbar">
+        <div class="tab on" data-t="home" onclick="goTab('home')"><span class="ic">🏠</span>首页</div>
+        <div class="tab" data-t="tour" onclick="goTab('tour')"><span class="ic">📷</span>探店</div>
+        <div class="tab" data-t="dress" onclick="goTab('dress')"><span class="ic">✨</span>AI装扮</div>
+        <div class="tab" data-t="cart" onclick="goTab('cart')"><span class="ic">🛒</span>购物车</div>
+        <div class="tab" data-t="me" onclick="goTab('me')"><span class="ic">👤</span>我的</div>
+      </div>
+
+      <div class="sheet" id="sheet">
+        <div class="grab"></div>
+        <div id="sheetBody"></div>
+      </div>
+      <div class="toast" id="toast"></div>
+    </div>
+  </div>
+
+  <div class="info">
+    <h2>小程序端操作逻辑</h2>
+    <div class="blk">
+      <h3>👆 顾客视角（装扮流程）</h3>
+      <ol>
+        <li>首页实景探店 → 点「AI 场景装扮」</li>
+        <li>上传/拍院子照片 → 看 AI 场景识别结果</li>
+        <li>选花卉（可多选、定数量，看详情/养护难度）</li>
+        <li>描述需求：风格标签 + 预算滑块 + 位置</li>
+        <li>提交 → 多阶段生成 → 多套方案切换</li>
+        <li>拖动对比前后 → 调数量 → 加入购物车/下单</li>
+      </ol>
+    </div>
+    <div class="blk">
+      <h3>⚙️ 后台处理链路</h3>
+      <div class="dev">
+        <p style="margin:0 0 6px">上传照片 → 对象存储；后端调用 AI：</p>
+        <p style="margin:0">
+          <span class="tagline">① 场景理解</span>类型/光照/空间
+          <span class="tagline">② 商品抠图</span>花卉去底
+          <span class="tagline">③ 图生图融合</span>生成效果图
+        </p>
+        <p style="margin:8px 0 0">返回效果图 + 商品清单 → 前端展示下单。</p>
+      </div>
+    </div>
+    <div class="blk">
+      <h3>🛠 开发方案（轻量落地）</h3>
+      <div class="dev">
+        <p style="margin:0">
+          <b>前端</b>：微信小程序（原生 / uni-app / Taro）<br>
+          <b>后端</b>：微信云开发 或 FastAPI/Node<br>
+          <b>AI</b>：即梦/豆包、通义万相、可图 Kolors；抠图 SAM<br>
+          <b>存储</b>：OSS/COS；<b>成本</b>：单图几分～几毛
+        </p>
+      </div>
+    </div>
+    <a class="back-link" href="framework.html">← 返回运营框架总表</a>
+  </div>
+</div>
+
+<script>
+/* ===== 绘制 ===== */
+function bloom(x,y,color){
+  let s='';const r=6,R=13;
+  for(let i=0;i<6;i++){const a=i*Math.PI/3+Math.PI/6;s+=`<circle cx="${(x+R*Math.cos(a)).toFixed(1)}" cy="${(y+R*Math.sin(a)).toFixed(1)}" r="${r}" fill="${color}" stroke="rgba(0,0,0,.06)" stroke-width=".5"/>`;}
+  return s+`<circle cx="${x}" cy="${y}" r="5" fill="#ffd84d"/>`;
+}
+function yardSVG(flowers){
+  let f='';
+  (flowers||[]).forEach(fl=>{
+    f+=`<line x1="${fl.x}" y1="${fl.y}" x2="${fl.x}" y2="${fl.y-26}" stroke="#5aa469" stroke-width="3"/>`
+     + `<path d="M${fl.x} ${fl.y-14} q -9 -5 -15 1 q 9 5 15 -1 Z" fill="#5aa469"/>`
+     + `<path d="M${fl.x} ${fl.y-14} q 9 -5 15 1 q -9 5 -15 -1 Z" fill="#6db67e"/>`
+     + bloom(fl.x, fl.y-30, fl.color);
+  });
+  const posts=[0,40,80,120,160,200,240,280,320,360].map(x=>`<rect x="${x}" y="104" width="8" height="48" rx="2" fill="#c99a68"/>`).join('');
+  const id='g'+Math.random().toString(36).slice(2,6);
+  return `<svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice">
+    <defs><linearGradient id="sky${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#cfe8ff"/><stop offset="1" stop-color="#eef7ff"/></linearGradient>
+    <linearGradient id="grass${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8fd29a"/><stop offset="1" stop-color="#6cbb7d"/></linearGradient></defs>
+    <rect width="400" height="300" fill="url(#sky${id})"/>
+    <circle cx="330" cy="46" r="20" fill="#ffe28a"/>
+    <rect y="150" width="400" height="150" fill="url(#grass${id})"/>
+    <rect x="0" y="150" width="400" height="8" fill="#7ecb8c"/>
+    <rect x="0" y="118" width="400" height="5" fill="#b98a5a"/>
+    <rect x="0" y="136" width="400" height="5" fill="#b98a5a"/>
+    ${posts}
+    <path d="M180 300 L220 300 L234 182 L166 182 Z" fill="#e8dcc8"/>
+    ${f}
+  </svg>`;
+}
+function miniFlower(color){return `<svg viewBox="0 0 56 56">${bloom(28,28,color)}</svg>`;}
+
+/* ===== 数据 ===== */
+const FLOWERS=[
+  {id:'f1', name:'月季·粉佳人', price:38, color:'#ff7fb0', cat:'开花', diff:'中等', size:'高约40cm', light:'喜阳', desc:'四季开花，适合庭院地栽或大盆，粉色重瓣，香气清雅。'},
+  {id:'f2', name:'郁金香·红', price:28, color:'#ef5f7a', cat:'开花', diff:'容易', size:'高约30cm', light:'喜阳', desc:'春季庭院主角，红色杯状花，成片种植效果最佳。'},
+  {id:'f3', name:'向日葵', price:25, color:'#ffd23f', cat:'开花', diff:'容易', size:'高约60cm', light:'喜阳', desc:'明亮醒目，庭院点缀、亲子种植皆宜，需充足日照。'},
+  {id:'f4', name:'绣球·蓝紫', price:58, color:'#8f76d8', cat:'开花', diff:'中等', size:'冠幅约35cm', light:'半阴', desc:'耐阴，适合院墙、树荫下，蓝紫色花球，夏秋盛开。'},
+  {id:'f5', name:'雏菊·白', price:18, color:'#f3f3f3', cat:'开花', diff:'容易', size:'高约20cm', light:'喜阳', desc:'清新田园风，白色小花成片，低维护，适合花境边缘。'},
+  {id:'f6', name:'多肉组合', price:48, color:'#7fc98f', cat:'多肉', diff:'容易', size:'组合盆', light:'喜阳', desc:'耐旱省心，适合忙碌家庭，点缀石阶、窗台与角落。'},
+];
+const CHIPS=['全部','开花','多肉'];
+const TAGS=['温馨田园','简约现代','喜阳','耐阴','东侧','西侧','靠墙','沿路'];
+const YARD_POS=[{x:60,y:150},{x:100,y:150},{x:140,y:150},{x:180,y:150},{x:220,y:150},{x:260,y:150},{x:300,y:150},{x:340,y:150},{x:120,y:204},{x:280,y:204},{x:200,y:248},{x:90,y:256},{x:310,y:248}];
+const SCHEMES={
+  A:{name:'温馨田园',colors:['#ff7fb0','#ef5f7a','#ffd23f']},
+  B:{name:'简约现代',colors:['#f3f3f3','#dcefe2','#bfe0cc']},
+  C:{name:'多肉花园',colors:['#7fc98f','#a8d5b0','#5aa469']},
+};
+
+/* ===== 状态 ===== */
+let tab='home', aiStep='upload', uploaded=false, detected=false;
+let selected=new Map();      // id -> qty
+let catFilter='全部';
+let activeTags=new Set();
+let budget=500, scheme='A', sheetId=null, sheetQty=1;
+
+function $(id){return document.getElementById(id);}
+function byId(id){return FLOWERS.find(f=>f.id===id);}
+function selTotal(){let s=0;selected.forEach(q=>s+=q);return s;}
+function selSum(){let s=0;selected.forEach((q,id)=>s+=byId(id).price*q);return s;}
+
+/* ===== Tab ===== */
+function goTab(t){
+  tab=t;
+  if(t==='dress' && aiStep==='result' && !uploaded){ aiStep='upload'; }
+  document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on', x.dataset.t===t));
+  $('foot').style.display = (t==='dress') ? 'block' : 'none';
+  if(t==='cart') renderCart();
+  render();
+}
+function render(){
+  const b=$('body');
+  $('backBtn').classList.remove('show');
+  if(tab==='home'){renderHome(b);$('navTitle').textContent='如皋花语园艺';}
+  else if(tab==='tour'){renderTour(b);$('navTitle').textContent='实景探店';}
+  else if(tab==='dress'){renderDress(b);}
+  else if(tab==='cart'){renderCart(b);$('navTitle').textContent='购物车';}
+  else if(tab==='me'){renderMe(b);$('navTitle').textContent='我的';}
+}
+
+/* ===== 首页 ===== */
+function renderHome(b){
+  const banner = `<div class="search">🔍 搜索绿植、鲜花、资材…</div>
+  <div class="banner">
+    ${yardSVG([{x:70,y:150,color:'#ff7fb0'},{x:130,y:150,color:'#ef5f7a'},{x:190,y:150,color:'#ffd23f'},{x:250,y:150,color:'#8f76d8'},{x:310,y:150,color:'#ff7fb0'}])}
+    <div class="bt"><h3>AI 场景装扮</h3><p>拍下你家院子，AI 帮你把花「种」进去看看效果</p></div>
+    <span class="go" onclick="startDress()">立即体验 →</span>
+  </div>
+  <div class="cats">
+    ${[['🌿','绿植'],['🌷','鲜花'],['🪴','多肉'],['🪵','盆景'],['🧺','资材']].map(c=>`<div class="cat" onclick="toast('${c[1]}：演示分类')"><span class="ic">${c[0]}</span>${c[1]}</div>`).join('')}
+  </div>
+  <div class="sec-t"><b>🌿 实景探店 · 热门</b><span onclick="goTab('tour')">全景逛店 →</span></div>
+  <div class="pgrid">
+    ${FLOWERS.slice(0,4).map(f=>`<div class="pcard" onclick="openSheet('${f.id}')">${yardSVG([{x:170,y:150,color:f.color},{x:230,y:150,color:f.color}])}<div class="pi"><b>${f.name}</b><span class="pr">¥${f.price}</span><span class="sold">已售${20+Math.floor(Math.random()*80)}</span></div></div>`).join('')}
+  </div>`;
+  b.innerHTML=banner;
+}
+
+/* ===== 探店 ===== */
+function renderTour(b){
+  b.innerHTML=`<div class="banner" style="cursor:pointer" onclick="toast('演示：720°全景旋转')">
+    ${yardSVG([{x:60,y:150,color:'#ff7fb0'},{x:120,y:150,color:'#ef5f7a'},{x:180,y:150,color:'#ffd23f'},{x:240,y:150,color:'#8f76d8'},{x:300,y:150,color:'#7fc98f'}])}
+    <div class="bt"><h3>🏪 门店 720° 实景</h3><p>点击拖动，线上逛店看真货</p></div>
+  </div>
+  <div class="detect"><b>📍 门店信息</b>
+    <div style="font-size:12.5px;margin-top:6px;color:#4a6b58">如皋花语园艺 · 社区旗舰店<br>营业时间 08:30–20:00 · 全年无休<br>☎ 预约到店 / 一键导航</div>
+  </div>
+  <div class="sec-t"><b>🌷 在售实景</b><span>共 ${FLOWERS.length} 款</span></div>
+  <div class="pgrid">${FLOWERS.map(f=>`<div class="pcard" onclick="openSheet('${f.id}')">${yardSVG([{x:170,y:150,color:f.color},{x:230,y:150,color:f.color}])}<div class="pi"><b>${f.name}</b><span class="pr">¥${f.price}</span></div></div>`).join('')}</div>`;
+}
+
+/* ===== 装扮流程 ===== */
+function startDress(){ tab='dress'; aiStep='upload'; uploaded=false; detected=false; selected.clear(); scheme='A';
+  document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on', x.dataset.t==='dress'));
+  $('foot').style.display='block'; render();
+}
+const TITLES={upload:'上传照片',select:'选择花卉',desc:'描述需求',load:'AI 生成中',result:'装扮效果'};
+function renderDress(b){
+  $('navTitle').textContent=TITLES[aiStep];
+  $('backBtn').classList.toggle('show', aiStep!=='upload');
+  if(aiStep==='upload') renderUpload(b);
+  else if(aiStep==='select') renderSelect(b);
+  else if(aiStep==='desc') renderDesc(b);
+  else if(aiStep==='load') renderLoad(b);
+  else if(aiStep==='result') renderResult(b);
+  updateBtn();
+}
+function renderUpload(b){
+  b.innerHTML=`<h3 class="h3">📷 上传你家院子的照片</h3><p class="hint">拍摄或从相册选择，AI 会识别场景结构、光照与空间</p>
+  <div class="up-box" id="upBox" onclick="doUpload()"><span class="ic">🖼️</span><b>从相册选择 / 拍一张</b><span>支持 JPG、PNG</span></div>
+  <div id="afterUpload"></div>`;
+}
+function doUpload(){
+  uploaded=true; detected=true;
+  const au=$('afterUpload');
+  au.innerHTML=`<div class="up-preview"><span class="ok">✓ 我家院子.jpg</span>${yardSVG([])}</div>
+  <div class="detect"><b>🤖 AI 场景识别结果</b>
+    <div class="rows"><span class="chip">场景：庭院</span><span class="chip">朝向：东向</span><span class="chip">光照：半天日照</span><span class="chip">面积：约 18㎡</span><span class="chip">地面：草坪+石板路</span></div>
+  </div>`;
+  updateBtn();
+}
+function renderSelect(b){
+  b.innerHTML=`<h3 class="h3">🌷 选择要装扮的花卉</h3><p class="hint">已选 <b style="color:var(--pink-deep)">${selTotal()}</b> 株 · 合计 ¥${selSum()}</p>
+  <div class="fchips">${CHIPS.map(c=>`<span class="fchip${catFilter===c?' on':''}" onclick="setCat('${c}')">${c}</span>`).join('')}</div>
+  <div class="grid" id="flowerGrid"></div>`;
+  const g=$('flowerGrid');
+  FLOWERS.filter(f=>catFilter==='全部'||f.cat===catFilter).forEach(f=>{
+    const q=selected.get(f.id)||0;
+    const d=document.createElement('div');
+    d.className='flower'+(q?' sel':'');
+    d.innerHTML=`<span class="qty">${q}</span><div class="f-svg">${miniFlower(f.color)}</div><b>${f.name}</b><span class="price">¥${f.price}</span>`;
+    d.onclick=()=>openSheet(f.id);
+    g.appendChild(d);
+  });
+}
+function setCat(c){catFilter=c;renderDress($('body'));}
+function renderDesc(b){
+  b.innerHTML=`<h3 class="h3">💬 描述你的需求（可选）</h3><p class="hint">告诉 AI 风格、预算、位置，效果更贴合</p>
+  <div class="tags" id="tagBox">${TAGS.map(t=>`<span class="tag${activeTags.has(t)?' on':''}" onclick="togTag('${t}')">${t}</span>`).join('')}</div>
+  <div class="slider-row"><b>预算</b><input type="range" min="100" max="2000" step="50" value="${budget}" oninput="budget=this.value;$('budgetVal').textContent='¥'+this.value"><span class="val" id="budgetVal">¥${budget}</span></div>
+  <textarea id="descText" rows="4" placeholder="例如：想要温馨田园风，花摆在院子东侧，有半天日照…">想要温馨田园风，花摆在院子东侧，有半天日照。</textarea>`;
+}
+function togTag(t){activeTags.has(t)?activeTags.delete(t):activeTags.add(t);renderDessmall();}
+function renderDessmall(){renderDress($('body'));}
+function renderLoad(b){
+  b.innerHTML=`<div class="load-wrap">
+    <div class="thumb">${yardSVG([])}</div>
+    <div class="spinner"><i style="background:#ff9dc0"></i><i style="background:#ffc9dc"></i><i style="background:#ffd23f"></i><i style="background:#ff9dc0"></i><i style="background:#ffc9dc"></i><i style="background:#ffd23f"></i><span class="core"></span></div>
+    <div class="lt">AI 正在生成装扮效果…</div>
+    <div class="stages" id="stages">
+      <div class="stage done"><span class="st-ic">✓</span>识别院子结构与光照</div>
+      <div class="stage now"><span class="st-ic">●</span>匹配所选花卉素材</div>
+      <div class="stage"><span class="st-ic">3</span>生成摆放效果图</div>
+    </div>
+  </div>`;
+  setTimeout(()=>{
+    const st=$('stages');
+    st.innerHTML=`<div class="stage done"><span class="st-ic">✓</span>识别院子结构与光照</div>
+    <div class="stage done"><span class="st-ic">✓</span>匹配所选花卉素材</div>
+    <div class="stage now"><span class="st-ic">●</span>生成摆放效果图</div>`;
+    setTimeout(()=>{ aiStep='result'; renderDress($('body')); }, 900);
+  }, 900);
+}
+function dressFlowers(){
+  const colors = selected.size ? Array.from(selected.keys()).map(id=>byId(id).color) : SCHEMES[scheme].colors;
+  return YARD_POS.map((p,i)=>({x:p.x,y:p.y,color:colors[i%colors.length]}));
+}
+function renderResult(b){
+  b.innerHTML=`<h3 class="h3">✨ 装扮效果</h3><p class="hint">拖动滑杆对比「装扮前/后」，可切换方案</p>
+  <div class="schemes">${Object.entries(SCHEMES).map(([k,v])=>`<div class="scheme${scheme===k?' on':''}" onclick="setScheme('${k}')">${v.name}</div>`).join('')}</div>
+  <div class="ba" id="ba">
+    <div class="layer after" id="baAfter">${yardSVG(dressFlowers())}</div>
+    <div class="layer before" id="baBefore">${yardSVG([])}</div>
+    <span class="ba-tag l">装扮前</span><span class="ba-tag r">装扮后</span>
+    <span class="handle" id="baHandle"></span><span class="knob" id="baKnob">⟷</span>
+    <input type="range" min="0" max="100" value="50" id="baRange" oninput="setPos(this.value)">
+  </div>
+  <div class="cart" id="cartBox">${cartRows()}</div>
+  <div class="note">※ 效果为示意，请以实物为准</div>
+  <div class="btn-row" style="margin-top:12px">
+    <button class="btn-ghost" onclick="toast('已保存效果图（模拟）')">💾 保存</button>
+    <button class="btn-ghost" onclick="toast('已复制分享链接（模拟）')">📤 分享</button>
+  </div>`;
+  setPos(50);
+}
+function cartRows(){
+  let rows='';
+  selected.forEach((q,id)=>{
+    const f=byId(id);
+    rows+=`<div class="row"><span>🌷 ${f.name}（¥${f.price}）</span><span class="qtyctl"><button onclick="qty('${id}',-1)">−</button><b>${q}</b><button onclick="qty('${id}',1)">＋</button></span></div>`;
+  });
+  if(!rows) rows=`<div class="row"><span style="color:var(--muted)">请先选择花卉</span></div>`;
+  rows+=`<div class="row total"><span>合计（${selTotal()} 株）</span><span class="p">¥${selSum()}</span></div>`;
+  return rows;
+}
+function qty(id,d){
+  const q=(selected.get(id)||0)+d;
+  if(q<=0) selected.delete(id); else selected.set(id,q);
+  if(aiStep==='result'){ $('cartBox').innerHTML=cartRows(); $('baAfter').innerHTML=yardSVG(dressFlowers()); }
+  updateBtn();
+}
+function setScheme(k){scheme=k;if(aiStep==='result'){$('baAfter').innerHTML=yardSVG(dressFlowers());renderDress($('body'));}}
+function setPos(v){const ba=$('ba');if(ba)ba.style.setProperty('--pos',v+'%');}
+
+function updateBtn(){
+  const b=$('mainBtn');
+  if(aiStep==='upload'){b.disabled=!uploaded;b.textContent='下一步';}
+  else if(aiStep==='select'){b.disabled=selected.size===0;b.textContent='下一步';}
+  else if(aiStep==='desc'){b.disabled=false;b.textContent='✨ 生成效果图';}
+  else if(aiStep==='load'){b.disabled=true;b.textContent='生成中…';}
+  else if(aiStep==='result'){b.disabled=false;b.textContent='加入购物车并结算';}
+}
+function next(){
+  if(aiStep==='upload'){aiStep='select';}
+  else if(aiStep==='select'){aiStep='desc';}
+  else if(aiStep==='desc'){aiStep='load';renderDress($('body'));return;}
+  else if(aiStep==='load'){return;}
+  else if(aiStep==='result'){
+    if(selected.size===0){toast('请先选择花卉');return;}
+    addToCart(); return;
+  }
+  renderDress($('body'));
+}
+function goBack(){
+  const order=['upload','select','desc','result'];
+  const i=order.indexOf(aiStep);
+  if(i>0){aiStep=order[i-1];renderDress($('body'));}
+}
+
+/* ===== 详情弹层 ===== */
+function openSheet(id){
+  sheetId=id; sheetQty=selected.get(id)||1;
+  const f=byId(id);
+  $('sheetBody').innerHTML=`<div class="s-head">
+    <div>${miniFlower(f.color)}</div>
+    <div><h4>${f.name}</h4><span class="price">¥${f.price}</span></div>
+  </div>
+  <div class="meta">
+    <div><span>养护难度</span><span>${f.diff}</span></div>
+    <div><span>规格尺寸</span><span>${f.size}</span></div>
+    <div><span>光照需求</span><span>${f.light}</span></div>
+  </div>
+  <p style="font-size:12.5px;color:var(--muted);margin:0">${f.desc}</p>
+  <div class="s-act">
+    <span class="qtyctl"><button onclick="sheetQty=Math.max(1,sheetQty-1);syncSheet()">−</button><b id="sq">${sheetQty}</b><button onclick="sheetQty++;syncSheet()">＋</button></span>
+    <button class="add" onclick="addFromSheet()">加入装扮清单</button>
+  </div>`;
+  $('sheet').classList.add('on');
+}
+function syncSheet(){$('sq').textContent=sheetQty;}
+function addFromSheet(){
+  selected.set(sheetId, sheetQty);
+  $('sheet').classList.remove('on');
+  toast(`已加入 ${byId(sheetId).name} ×${sheetQty}`);
+  if(tab==='dress')renderDress($('body')); else render();
+}
+
+/* ===== 购物车 / 我的 ===== */
+function addToCart(){ toast('已加入购物车（模拟）'); goTab('cart'); }
+function renderCart(b){
+  if(!b)b=$('body');
+  let rows='';let sum=0;
+  selected.forEach((q,id)=>{const f=byId(id);sum+=f.price*q;
+    rows+=`<div class="row"><span>🌷 ${f.name}</span><span class="qtyctl"><button onclick="cartQty('${id}',-1)">−</button><b>${q}</b><button onclick="cartQty('${id}',1)">＋</button><span style="margin-left:6px;color:var(--pink-deep)">¥${f.price*q}</span></span></div>`;});
+  if(!rows) rows=`<div style="text-align:center;color:var(--muted);padding:40px 0">🛒 购物车是空的</div>`;
+  b.innerHTML=rows + (sum?`<div class="cart" style="margin-top:12px"><div class="row total"><span>合计</span><span class="p">¥${sum}</span></div>
+    <button class="btn-primary" style="margin-top:10px" onclick="toast('演示：结算提交')">去结算</button>
+    <button class="btn-ghost" style="margin-top:8px" onclick="selected.clear();renderCart();">清空</button></div>`:'');
+}
+function cartQty(id,d){const q=(selected.get(id)||0)+d;if(q<=0)selected.delete(id);else selected.set(id,q);renderCart();}
+function renderMe(b){
+  b.innerHTML=`<div style="display:flex;gap:12px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px">
+    <div style="width:52px;height:52px;border-radius:50%;background:var(--pink-soft);display:flex;align-items:center;justify-content:center;font-size:26px">🐰</div>
+    <div><b>如皋花语会员</b><div style="font-size:12px;color:var(--muted)">黄金会员 · 积分 1,280</div></div>
+  </div>
+  <div style="margin-top:12px;background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden">
+    ${[['📦','我的订单'],['🎟️','优惠券'],['💰','会员储值'],['🌱','养护记录'],['⚙️','设置']].map(r=>`<div style="display:flex;justify-content:space-between;padding:13px 15px;border-bottom:1px solid var(--line);font-size:14px;cursor:pointer" onclick="toast('${r[1]}：演示')"><span>${r[0]} ${r[1]}</span><span style="color:#c9b7be">›</span></div>`).join('')}
+  </div>`;
+}
+
+function toast(msg){
+  const t=$('toast'); t.textContent=msg; t.classList.add('on');
+  clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('on'),1500);
+}
+
+/* 初始 */
+goTab('home');
+</script>
+</body>
+</html>
